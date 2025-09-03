@@ -9,6 +9,13 @@ __init__.py
 # C extensions
 *.so
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
 # Distribution / packaging
 .Python
 build/
