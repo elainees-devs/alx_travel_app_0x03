@@ -18,8 +18,8 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', lambda request: redirect('schema-swagger-ui')),  # Redirect / to /swagger/
-
     path('admin/', admin.site.urls),
     path('api/', include('alx_travel_app.listings.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),  # 👈 adds /accounts/login/
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]
