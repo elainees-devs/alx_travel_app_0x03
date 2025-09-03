@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     # Local
     "alx_travel_app.listings",
 ]
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,   # disables /accounts/login/
