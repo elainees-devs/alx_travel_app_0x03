@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alx_travel_app.settings')
 
 SECRET_KEY = env("SECRET_KEY", default="django-insecure-xyz123")
 CHAPA_SECRET_KEY = os.getenv("CHAPA_SECRET_KEY")
@@ -32,7 +33,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "django_celery_results",
     # Local
-    "listings",
+    "alx_travel_app.listings",
 ]
 
 # Celery settings
@@ -71,9 +72,7 @@ TEMPLATES = [
         },
     },
 ]
-
 WSGI_APPLICATION = "alx_travel_app.wsgi.application"
-
 # MySQL DB setup
 DATABASES = {
     'default': {

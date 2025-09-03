@@ -14,7 +14,8 @@ from drf_yasg.utils import swagger_auto_schema
 from .models import Listing, Booking, Payment
 from .serializers import ListingSerializer, BookingSerializer, PaymentSerializer
 from .tasks import send_payment_confirmation_email
-from listings.utils.chapa import initialize_payment, verify_payment
+from alx_travel_app.listings.utils.chapa import initialize_payment, verify_payment
+
 
 logger = logging.getLogger(__name__)
 
