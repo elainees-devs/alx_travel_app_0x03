@@ -42,6 +42,12 @@ INSTALLED_APPS = [
     "alx_travel_app.listings",
 ]
 
+SWAGGER_SETTINGS = {
+    "USE_SESSION_AUTH": False,   # disables /accounts/login/
+    "SECURITY_DEFINITIONS": None,  # optional: removes "Authorize" button
+}
+
+
 # Celery settings
 CELERY_BROKER_URL = 'amqp://localhost'  # RabbitMQ
 CELERY_RESULT_BACKEND = 'django-db' 
