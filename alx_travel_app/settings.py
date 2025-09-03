@@ -17,7 +17,13 @@ BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 
 DEBUG = env.bool("DEBUG", default=True)
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
+ALLOWED_HOSTS = [
+    "alx-travel-app-0x03-z7x9.onrender.com",
+    "127.0.0.1",
+    "localhost",
+]
+
+
 
 # Application definition
 INSTALLED_APPS = [
