@@ -1,25 +1,58 @@
 from django.contrib import admin
 from django.urls import path, include, re_path
 from rest_framework import permissions
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.shortcuts import redirect
 
-
 schema_view = get_schema_view(
     openapi.Info(
         title="Travel App API",
-        default_version='v1',
+        default_version="v1",
         description="API documentation for the travel app",
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
+    authentication_classes=[],
 )
 
+# Define Bearer auth scheme
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Travel App API",
+        default_version="v1",
+        description="API documentation for the travel app",
+    ),
+    public=True,
+    permission_classes=[permissions.AllowAny],
+    authentication_classes=[],
+)
+
+# Add security schemes
+schema_view.security_definitions = {
+    "Bearer": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header",
+        "description": "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+    }
+}
+
 urlpatterns = [
-    path('', lambda request: redirect('schema-swagger-ui')),  # Redirect / to /swagger/
-    path('admin/', admin.site.urls),
-    path('api/', include('alx_travel_app.listings.urls')),
-    path('accounts/', include('django.contrib.auth.urls')),  # 👈 adds /accounts/login/
-    re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+    path("", lambda request: redirect("schema-swagger-ui")),  # Redirect / → /swagger/
+    path("admin/", admin.site.urls),
+    path("api/", include("alx_travel_app.listings.urls")),
+    path("accounts/", include("django.contrib.auth.urls")),  # /accounts/login/
+
+    # Swagger
+    re_path(
+        r"^swagger/$",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
+
+    # JWT Authentication endpoints
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
