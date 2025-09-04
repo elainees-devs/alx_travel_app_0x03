@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 import environ
+from datetime import timedelta
+
 
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,6 +23,7 @@ ALLOWED_HOSTS = [
     "alx-travel-app-0x03-z7x9.onrender.com",
     "127.0.0.1",
     "localhost",
+    "testserver"
 ]
 
 
@@ -46,8 +49,34 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,   # disables /accounts/login/
-    "SECURITY_DEFINITIONS": None,  # optional: removes "Authorize" button
+        "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": 'JWT Authorization header. Example: "Bearer {token}"',
+        }
+    },
+
 }
+
+# Rest framework
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",  # optional
+    ]
+}
+
+
+# Email settings
+EMAIL_BACKEND = env("EMAIL_BACKEND")
+EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_PORT = env.int("EMAIL_PORT")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
 
 # Celery settings
@@ -56,11 +85,10 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = "UTC"
+CELERY_TIMEZONE = 'Africa/Nairobi'
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.security.SecurityMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # add this just after SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -104,6 +132,12 @@ DATABASES = {
     }
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30), 
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # default 7 days
+    'ROTATE_REFRESH_TOKENS': True,                  # optional
+    'BLACKLIST_AFTER_ROTATION': True,               # optional
+}
 
 AUTH_PASSWORD_VALIDATORS = []
 
