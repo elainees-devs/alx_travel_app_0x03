@@ -2,7 +2,8 @@ import time
 import json
 import logging
 import requests
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes, action
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
@@ -10,11 +11,11 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-
 from .models import Listing, Booking, Payment
-from .serializers import ListingSerializer, BookingSerializer, PaymentSerializer
+from .serializers import ListingSerializer, BookingSerializer, PaymentSerializer, PaymentInputSerializer
 from .tasks import send_payment_confirmation_email
 from alx_travel_app.listings.utils.chapa import initialize_payment, verify_payment
+import random
 
 
 logger = logging.getLogger(__name__)
@@ -74,24 +75,80 @@ class ListingViewSet(ModelViewSet):
 # Booking ViewSet
 # -------------------------
 class BookingViewSet(ModelViewSet):
-    queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        # Short-circuit for Swagger schema generation
+        if getattr(self, 'swagger_fake_view', False):
+            return Booking.objects.none()
+        return Booking.objects.filter(user=self.request.user)
+
+    # -------------------------
+    # Custom pay action
+    # -------------------------
+    @action(detail=True, methods=['post'], url_path='pay')
+    def pay(self, request, pk=None):
+        booking = get_object_or_404(Booking, id=pk, user=request.user)
+
+        # Prevent duplicate payments
+        if Payment.objects.filter(booking_reference=f"booking_{booking.id}", user=request.user).exists():
+            return Response({"error": "Payment already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        booking_ref = f"booking_{booking.id}_{int(time.time())}"
+        payment = Payment.objects.create(
+            user=request.user,
+            booking_reference=booking_ref,
+            amount=random.randint(1000, 5000),  # replace with booking total if available
+            transaction_id=f"tx_{random.randint(1000,9999)}",
+            payment_status=random.choice(["Pending", "Completed", "Failed"])
+        )
+
+        # Optionally trigger async email
+        try:
+            send_payment_confirmation_email.delay(booking.id)
+        except Exception:
+            pass
+
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 # -------------------------
 # Initiate Payment
 # -------------------------
+@permission_classes([IsAuthenticated])
 class InitiatePaymentView(APIView):
+    @swagger_auto_schema(
+        request_body=PaymentInputSerializer,
+        responses={201: PaymentSerializer}
+    )
     def post(self, request, booking_id):
+        # Ensure user is authenticated
+        if request.user.is_anonymous:
+            return Response({"error": "Authentication required"}, status=401)
+
+        # Get booking for this user
         booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
-        if Payment.objects.filter(booking_reference=str(booking.id), user=request.user).exists():
+        # Validate input data from Swagger
+        serializer = PaymentInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Calculate amount if not provided
+        amount = serializer.validated_data.get(
+            "amount",
+            booking.property.price_per_night * (booking.check_out - booking.check_in).days
+        )
+        currency = serializer.validated_data.get("currency", "ETB")
+
+        # Check if payment already exists
+        if Payment.objects.filter(booking_reference=f"booking_{booking.id}", user=request.user).exists():
             return Response({"error": "Payment already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Prepare Chapa payload
         booking_ref = f"booking_{booking.id}_{int(time.time())}"
         payload = {
-            "amount": str(booking.total_price),
-            "currency": "ETB",
+            "amount": str(amount),
+            "currency": currency,
             "email": request.user.email,
             "tx_ref": booking_ref,
             "callback_url": f"{settings.BASE_URL}/api/payments/verify/{booking.id}/",
@@ -116,7 +173,7 @@ class InitiatePaymentView(APIView):
                 payment = Payment.objects.create(
                     user=request.user,
                     booking_reference=booking_ref,
-                    amount=booking.total_price,
+                    amount=amount,
                     transaction_id=response_data["data"]["tx_ref"],
                     payment_status="Pending"
                 )
@@ -136,8 +193,12 @@ class InitiatePaymentView(APIView):
 # -------------------------
 # Verify Payment
 # -------------------------
+@permission_classes([IsAuthenticated])
 class VerifyPaymentView(APIView):
     def get(self, request, booking_id):
+            #Check for anonymous user first
+        if request.user.is_anonymous:
+            return Response({"error": "Authentication required"}, status=401)
         payment = Payment.objects.filter(
             user=request.user,
             booking_reference__contains=f"_{booking_id}_"
