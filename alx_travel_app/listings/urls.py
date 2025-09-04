@@ -1,12 +1,12 @@
-# listings/urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ListingViewSet, BookingViewSet, VerifyPaymentView
 
-from django.urls import path
+router = DefaultRouter()
+router.register(r'listings', ListingViewSet, basename='listing')
+router.register(r'bookings', BookingViewSet, basename='booking')
 
-from .views import SampleView, InitiatePaymentView, VerifyPaymentView , TestChapaPaymentView
 urlpatterns = [
-    path('payment/test/', TestChapaPaymentView.as_view(), name='test-payment'),
-    path('sample/', SampleView.as_view(), name='sample'),  # test endpoint
-    path('bookings/<int:booking_id>/pay/', InitiatePaymentView.as_view(), name='initiate-payment'),
+    path('', include(router.urls)),  # includes /bookings/{id}/pay/
     path('payments/verify/<int:booking_id>/', VerifyPaymentView.as_view(), name='verify-payment'),
-  
 ]
