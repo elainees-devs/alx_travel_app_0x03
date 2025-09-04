@@ -57,10 +57,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     # ------------------------
 # Payment Serializer
 # ------------------------
-
+# Returns payment details including user email to client
 class PaymentSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source='user.email', read_only=True)
 
     class Meta:
         model = Payment
         fields = ['id', 'user', 'user_email', 'booking_reference', 'amount', 'transaction_id', 'payment_status', 'created_at']
+        
+# Input serializer for initiating payment
+class PaymentInputSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    currency = serializers.CharField(max_length=3, default="ETB", required=False)
