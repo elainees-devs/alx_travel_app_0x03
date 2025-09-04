@@ -96,4 +96,4 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.booking_reference} - {self.status}"
+        return f"{self.booking_reference} - {self.payment_status}"
