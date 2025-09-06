@@ -2,44 +2,46 @@ import time
 import json
 import logging
 import requests
+import random
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view,permission_classes, action
-from django.conf import settings
-from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+
 from .models import Listing, Booking, Payment
 from .serializers import ListingSerializer, BookingSerializer, PaymentSerializer, PaymentInputSerializer
 from .tasks import send_payment_confirmation_email
 from alx_travel_app.listings.utils.chapa import initialize_payment, verify_payment
-import random
-
 
 logger = logging.getLogger(__name__)
 
+# -------------------------
+# Test Email
+# -------------------------
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
 def test_send_email(request):
-    """
-    Test endpoint to send a payment confirmation email via Celery.
-    Accepts 'booking_id' and optional 'to_email' in request body.
-    """
     booking_id = request.data.get("booking_id", 1)
-    to_email = request.data.get("to_email", request.user.email)
+    to_email = request.data.get("to_email", getattr(request.user, "email", None))
 
     send_payment_confirmation_email.apply_async(
         kwargs={"booking_id": booking_id, "to_email": to_email}
     )
 
     return Response({"status": "Email task queued for Celery worker"})
+
+
 # -------------------------
 # Sample API
 # -------------------------
 class SampleView(APIView):
     def get(self, request):
+        if getattr(self, "swagger_fake_view", False):
+            return Response({"message": "Swagger schema"}, status=200)
         return Response({"message": "Hello from listings API!"})
 
 
@@ -47,8 +49,13 @@ class SampleView(APIView):
 # Test Chapa Payment API
 # -------------------------
 class TestChapaPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(operation_description="Test Chapa payment endpoint")
     def get(self, request):
+        if getattr(self, "swagger_fake_view", False):
+            return Response({"message": "Swagger schema"}, status=200)
+
         payload = {
             "amount": "10",
             "currency": "ETB",
@@ -93,19 +100,17 @@ class BookingViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Short-circuit for Swagger schema generation
-        if getattr(self, 'swagger_fake_view', False):
+        if getattr(self, "swagger_fake_view", False):
             return Booking.objects.none()
         return Booking.objects.all()
 
-    # -------------------------
-    # Custom pay action
-    # -------------------------
-    @action(detail=True, methods=['post'], url_path='pay')
+    @swagger_auto_schema(method='post', operation_description="Pay for a booking")
     def pay(self, request, pk=None):
+        if getattr(self, "swagger_fake_view", False):
+            return Response({"message": "Swagger schema"}, status=200)
+
         booking = get_object_or_404(Booking, id=pk, user=request.user)
 
-        # Prevent duplicate payments
         if Payment.objects.filter(booking_reference=f"booking_{booking.id}", user=request.user).exists():
             return Response({"error": "Payment already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -113,12 +118,11 @@ class BookingViewSet(ModelViewSet):
         payment = Payment.objects.create(
             user=request.user,
             booking_reference=booking_ref,
-            amount=random.randint(1000, 5000),  # replace with booking total if available
+            amount=random.randint(1000, 5000),
             transaction_id=f"tx_{random.randint(1000,9999)}",
             payment_status=random.choice(["Pending", "Completed", "Failed"])
         )
 
-        # Optionally trigger async email
         try:
             send_payment_confirmation_email.delay(booking.id)
         except Exception:
@@ -126,39 +130,35 @@ class BookingViewSet(ModelViewSet):
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
+
 # -------------------------
 # Initiate Payment
 # -------------------------
-@permission_classes([IsAuthenticated])
 class InitiatePaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
     @swagger_auto_schema(
         request_body=PaymentInputSerializer,
         responses={201: PaymentSerializer}
     )
     def post(self, request, booking_id):
-        # Ensure user is authenticated
-        if request.user.is_anonymous:
-            return Response({"error": "Authentication required"}, status=401)
+        if getattr(self, "swagger_fake_view", False):
+            return Response({"message": "Swagger schema"}, status=200)
 
-        # Get booking for this user
         booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
-        # Validate input data from Swagger
         serializer = PaymentInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Calculate amount if not provided
         amount = serializer.validated_data.get(
             "amount",
             booking.property.price_per_night * (booking.check_out - booking.check_in).days
         )
         currency = serializer.validated_data.get("currency", "ETB")
 
-        # Check if payment already exists
         if Payment.objects.filter(booking_reference=f"booking_{booking.id}", user=request.user).exists():
             return Response({"error": "Payment already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Prepare Chapa payload
         booking_ref = f"booking_{booking.id}_{int(time.time())}"
         payload = {
             "amount": str(amount),
@@ -196,7 +196,6 @@ class InitiatePaymentView(APIView):
                     "payment_url": response_data["data"]["checkout_url"]
                 }, status=status.HTTP_201_CREATED)
 
-            logger.error(f"Payment initiation failed: {response_data}")
             return Response({"error": "Payment initiation failed"}, status=status.HTTP_400_BAD_REQUEST)
 
         except requests.exceptions.RequestException as e:
@@ -207,12 +206,13 @@ class InitiatePaymentView(APIView):
 # -------------------------
 # Verify Payment
 # -------------------------
-@permission_classes([IsAuthenticated])
 class VerifyPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, booking_id):
-            #Check for anonymous user first
-        if request.user.is_anonymous:
-            return Response({"error": "Authentication required"}, status=401)
+        if getattr(self, "swagger_fake_view", False):
+            return Response({"message": "Swagger schema"}, status=200)
+
         payment = Payment.objects.filter(
             user=request.user,
             booking_reference__contains=f"_{booking_id}_"
@@ -234,10 +234,8 @@ class VerifyPaymentView(APIView):
                 payment.payment_status = "Completed"
                 payment.save()
 
-                # Trigger async email
                 try:
                     send_payment_confirmation_email.delay(booking_id)
-                    logger.info(f"Payment confirmation email task queued for booking {booking_id}")
                 except Exception as e:
                     logger.error(f"Failed to enqueue email task: {str(e)}")
 
@@ -247,19 +245,21 @@ class VerifyPaymentView(APIView):
             payment.save()
             return Response({"status": "failed", "payment": PaymentSerializer(payment).data}, status=status.HTTP_400_BAD_REQUEST)
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Chapa verify request error: {str(e)}")
-            return Response({"error": "Payment verification failed"}, status=status.HTTP_400_BAD_REQUEST)
-
         except Exception as e:
             logger.error(f"Unexpected error during payment verification: {str(e)}")
             return Response({"error": "Payment verification failed"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@permission_classes([IsAuthenticated])    
+# -------------------------
+# Verified Payments List
+# -------------------------
 class VerifiedPaymentsView(APIView):
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if getattr(self, "swagger_fake_view", False):
+            return Response({"message": "Swagger schema"}, status=200)
+
         payments = Payment.objects.filter(payment_status="Completed")
         serializer = PaymentSerializer(payments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
