@@ -4,7 +4,7 @@ import logging
 import requests
 import random
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -91,10 +91,9 @@ class ListingViewSet(ModelViewSet):
     queryset = Listing.objects.all()
     serializer_class = ListingSerializer
 
-
 # -------------------------
 # Booking ViewSet
-# -------------------------
+# -------------------------         
 class BookingViewSet(ModelViewSet):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
@@ -139,40 +138,6 @@ class BookingViewSet(ModelViewSet):
             logger.error(f"Email task failed: {str(e)}")
 
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
-    serializer_class = BookingSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Booking.objects.none()
-        return Booking.objects.all()
-
-    @swagger_auto_schema(method='post', operation_description="Pay for a booking")
-    def pay(self, request, pk=None):
-        if getattr(self, "swagger_fake_view", False):
-            return Response({"message": "Swagger schema"}, status=200)
-
-        booking = get_object_or_404(Booking, id=pk, user=request.user)
-
-        if Payment.objects.filter(booking_reference=f"booking_{booking.id}", user=request.user).exists():
-            return Response({"error": "Payment already exists"}, status=status.HTTP_400_BAD_REQUEST)
-
-        booking_ref = f"booking_{booking.id}_{int(time.time())}"
-        payment = Payment.objects.create(
-            user=request.user,
-            booking_reference=booking_ref,
-            amount=random.randint(1000, 5000),
-            transaction_id=f"tx_{random.randint(1000,9999)}",
-            payment_status=random.choice(["Pending", "Completed", "Failed"])
-        )
-
-        try:
-            send_payment_confirmation_email.delay(booking.id)
-        except Exception:
-            pass
-
-        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
-
 
 # -------------------------
 # Initiate Payment
