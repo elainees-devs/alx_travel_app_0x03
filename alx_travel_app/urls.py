@@ -14,45 +14,22 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=[permissions.AllowAny],
-    authentication_classes=[],
 )
-
-# Define Bearer auth scheme
-schema_view = get_schema_view(
-    openapi.Info(
-        title="Travel App API",
-        default_version="v1",
-        description="API documentation for the travel app",
-    ),
-    public=True,
-    permission_classes=[permissions.AllowAny],
-    authentication_classes=[],
-)
-
-# Add security schemes
-schema_view.security_definitions = {
-    "Bearer": {
-        "type": "apiKey",
-        "name": "Authorization",
-        "in": "header",
-        "description": "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
-    }
-}
 
 urlpatterns = [
-    path("", lambda request: redirect("schema-swagger-ui")),  # Redirect / → /swagger/
+    path("", lambda request: redirect("schema-swagger-ui")),
     path("admin/", admin.site.urls),
     path("api/", include("alx_travel_app.listings.urls")),
-    path("accounts/", include("django.contrib.auth.urls")),  # /accounts/login/
+    path("accounts/", include("django.contrib.auth.urls")),
 
-    # Swagger
+    # Swagger UI
     re_path(
         r"^swagger/$",
         schema_view.with_ui("swagger", cache_timeout=0),
         name="schema-swagger-ui",
     ),
 
-    # JWT Authentication endpoints
+    # JWT endpoints
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 ]
