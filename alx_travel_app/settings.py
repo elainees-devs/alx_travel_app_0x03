@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 import environ
 from datetime import timedelta
-from decouple import config
-
 
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,15 +36,20 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "rest_framework",
+    "rest_framework_simplejwt",
     "corsheaders",
     "drf_yasg",
     "django_celery_results",
     # Local
     "alx_travel_app.listings",
 ]
+
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# Swagger settings
 SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,  # disables /accounts/login/
     "SECURITY_DEFINITIONS": {
@@ -62,13 +65,14 @@ SWAGGER_SETTINGS = {
 # Rest framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
+
 
 
 # Email settings
@@ -82,13 +86,14 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL").strip()
 
 
 # Celery settings
-CELERY_BROKER_URL = "amqp://localhost"  # RabbitMQ
-CELERY_RESULT_BACKEND = "django-db"
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="django-db")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Nairobi"
 
+# Middleware
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -101,9 +106,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
+# URL Configuration
 ROOT_URLCONF = "alx_travel_app.urls"
 
+# Template settings
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -119,34 +125,36 @@ TEMPLATES = [
         },
     },
 ]
+
 WSGI_APPLICATION = "alx_travel_app.wsgi.application"
 
 #Database setup
-DB_ENGINE = config("DB_ENGINE", default="mysql")
+DB_ENGINE = env("DB_ENGINE", default="mysql")
 
 if DB_ENGINE == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": config("DB_NAME"),
-            "USER": config("DB_USER"),
-            "PASSWORD": config("DB_PASSWORD"),
-            "HOST": config("DB_HOST"),
-            "PORT": config("DB_PORT"),
+            "NAME": env("DB_NAME"),
+            "USER": env("DB_USER"),
+            "PASSWORD": env("DB_PASSWORD"),
+            "HOST": env("DB_HOST"),
+            "PORT": env("DB_PORT", default="5432"),
         }
     }
 else:  # mysql
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": config("DB_NAME"),
-            "USER": config("DB_USER"),
-            "PASSWORD": config("DB_PASSWORD"),
-            "HOST": config("DB_HOST"),
-            "PORT": config("DB_PORT"),
+            "NAME": env("DB_NAME"),
+            "USER": env("DB_USER"),
+            "PASSWORD": env("DB_PASSWORD"),
+            "HOST": env("DB_HOST"),
+            "PORT": env("DB_PORT", default="3306"),
         }
     }
 
+# Password validation
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # default 7 days
@@ -155,14 +163,16 @@ SIMPLE_JWT = {
 }
 
 AUTH_PASSWORD_VALIDATORS = []
-
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Africa/Nairobi"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = ["https://alx-travel-app-0x03-z7x9.onrender.com"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
