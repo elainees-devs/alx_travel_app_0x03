@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alx_travel_app.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "alx_travel_app.settings")
 
 SECRET_KEY = env("SECRET_KEY", default="django-insecure-xyz123")
 CHAPA_SECRET_KEY = os.getenv("CHAPA_SECRET_KEY")
@@ -23,9 +23,8 @@ ALLOWED_HOSTS = [
     "alx-travel-app-0x03-z7x9.onrender.com",
     "127.0.0.1",
     "localhost",
-    "testserver"
+    "testserver",
 ]
-
 
 
 # Application definition
@@ -44,12 +43,12 @@ INSTALLED_APPS = [
     # Local
     "alx_travel_app.listings",
 ]
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 SWAGGER_SETTINGS = {
-    "USE_SESSION_AUTH": False,   # disables /accounts/login/
-        "SECURITY_DEFINITIONS": {
+    "USE_SESSION_AUTH": False,  # disables /accounts/login/
+    "SECURITY_DEFINITIONS": {
         "Bearer": {
             "type": "apiKey",
             "name": "Authorization",
@@ -57,35 +56,37 @@ SWAGGER_SETTINGS = {
             "description": 'JWT Authorization header. Example: "Bearer {token}"',
         }
     },
-
 }
 
 # Rest framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",  # optional
-    ]
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 
 # Email settings
-EMAIL_BACKEND = env("EMAIL_BACKEND")
-EMAIL_HOST = env("EMAIL_HOST")
+EMAIL_BACKEND = env("EMAIL_BACKEND").strip()
+EMAIL_HOST = env("EMAIL_HOST").strip()
 EMAIL_PORT = env.int("EMAIL_PORT")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS")
-EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER").strip()
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD").strip()
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL").strip()
 
 
 # Celery settings
-CELERY_BROKER_URL = 'amqp://localhost'  # RabbitMQ
-CELERY_RESULT_BACKEND = 'django-db' 
+CELERY_BROKER_URL = "amqp://localhost"  # RabbitMQ
+CELERY_RESULT_BACKEND = "django-db"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = 'Africa/Nairobi'
+CELERY_TIMEZONE = "Africa/Nairobi"
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -97,9 +98,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-  
 ]
-
 
 
 ROOT_URLCONF = "alx_travel_app.urls"
@@ -122,21 +121,21 @@ TEMPLATES = [
 WSGI_APPLICATION = "alx_travel_app.wsgi.application"
 # MySQL DB setup
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST'),
-        'PORT': env('DB_PORT'),
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": env("DB_NAME"),
+        "USER": env("DB_USER"),
+        "PASSWORD": env("DB_PASSWORD"),
+        "HOST": env("DB_HOST"),
+        "PORT": env("DB_PORT"),
     }
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30), 
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # default 7 days
-    'ROTATE_REFRESH_TOKENS': True,                  # optional
-    'BLACKLIST_AFTER_ROTATION': True,               # optional
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # default 7 days
+    "ROTATE_REFRESH_TOKENS": True,  # optional
+    "BLACKLIST_AFTER_ROTATION": True,  # optional
 }
 
 AUTH_PASSWORD_VALIDATORS = []
