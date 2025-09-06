@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes, action
+from rest_framework.decorators import api_view,permission_classes, action
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
@@ -20,7 +20,21 @@ import random
 
 logger = logging.getLogger(__name__)
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def test_send_email(request):
+    """
+    Test endpoint to send a payment confirmation email via Celery.
+    Accepts 'booking_id' and optional 'to_email' in request body.
+    """
+    booking_id = request.data.get("booking_id", 1)
+    to_email = request.data.get("to_email", request.user.email)
 
+    send_payment_confirmation_email.apply_async(
+        kwargs={"booking_id": booking_id, "to_email": to_email}
+    )
+
+    return Response({"status": "Email task queued for Celery worker"})
 # -------------------------
 # Sample API
 # -------------------------
@@ -82,7 +96,7 @@ class BookingViewSet(ModelViewSet):
         # Short-circuit for Swagger schema generation
         if getattr(self, 'swagger_fake_view', False):
             return Booking.objects.none()
-        return Booking.objects.filter(user=self.request.user)
+        return Booking.objects.all()
 
     # -------------------------
     # Custom pay action
@@ -240,3 +254,12 @@ class VerifyPaymentView(APIView):
         except Exception as e:
             logger.error(f"Unexpected error during payment verification: {str(e)}")
             return Response({"error": "Payment verification failed"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@permission_classes([IsAuthenticated])    
+class VerifiedPaymentsView(APIView):
+
+    def get(self, request):
+        payments = Payment.objects.filter(payment_status="Completed")
+        serializer = PaymentSerializer(payments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
