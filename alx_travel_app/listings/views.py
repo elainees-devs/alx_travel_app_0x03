@@ -100,8 +100,10 @@ class BookingViewSet(ModelViewSet):
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
-            return Booking.objects.none()
+        # Return first 5 bookings for Swagger display
+            return Booking.objects.all()[:5]
         return Booking.objects.all()
+
 
     @swagger_auto_schema(
         method="post",
