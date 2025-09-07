@@ -93,17 +93,16 @@ class ListingViewSet(ModelViewSet):
 
 # -------------------------
 # Booking ViewSet
-# -------------------------         
+# -------------------------
 class BookingViewSet(ModelViewSet):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Return first 5 bookings for Swagger, all bookings for real requests
         if getattr(self, "swagger_fake_view", False):
-        # Return first 5 bookings for Swagger display
             return Booking.objects.all()[:5]
-        return Booking.objects.all()
-
+        return Booking.objects.filter(user=self.request.user)
 
     @swagger_auto_schema(
         method="post",
