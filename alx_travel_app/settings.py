@@ -122,16 +122,17 @@ WSGI_APPLICATION = "alx_travel_app.wsgi.application"
 
 # DB setup
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME"),
-        "USER": env("DB_USER"),
-        # "PASSWORD": env("DB_PASSWORD"),
-        "DATABASE_URL": env("DATABASE_URL"),
-        "HOST": env("DB_HOST"),
-        "PORT": env("DB_PORT"),
+      "default": env.db(),  # reads DATABASE_URL
+    # "default": {
+    #     "ENGINE": "django.db.backends.postgresql",
+    #     "NAME": env("DB_NAME"),
+    #     "USER": env("DB_USER"),
+    #     # "PASSWORD": env("DB_PASSWORD"),
+    #     "DATABASE_URL": env("DATABASE_URL"),
+    #     "HOST": env("DB_HOST"),
+    #     "PORT": env("DB_PORT"),
     }
-}
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
