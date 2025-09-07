@@ -17,7 +17,7 @@ BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = [
-    "alx-travel-app-rinx.onrender.com",
+    "alx-travel-app-s8ap.onrender.com",
     "127.0.0.1",
     "localhost",
     "testserver",
